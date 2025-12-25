@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import ResumeInput from "./ResumeInput";
 import JobDescriptionInput from "./JobDescriptionInput";
 import AnalysisResults from "./AnalysisResults";
@@ -37,87 +38,48 @@ const ResumeScreener = () => {
     setResults(null);
 
     try {
-      // Simulated AI analysis - in production, this would call an edge function
-      await new Promise((resolve) => setTimeout(resolve, 2500));
+      const { data, error } = await supabase.functions.invoke("analyze-resume", {
+        body: {
+          resumeText: resume,
+          jobDescription: jobDescription,
+        },
+      });
 
-      // Extract skills from resume (simple keyword extraction simulation)
-      const resumeLower = resume.toLowerCase();
-      const jobLower = jobDescription.toLowerCase();
+      if (error) {
+        throw error;
+      }
 
-      const allSkills = [
-        "javascript", "typescript", "react", "node.js", "python", "aws", "docker",
-        "postgresql", "mongodb", "git", "agile", "leadership", "communication",
-        "java", "c++", "sql", "nosql", "kubernetes", "ci/cd", "rest api",
-        "graphql", "html", "css", "vue", "angular", "express", "django", "flask"
-      ];
+      if (!data.success || !data.analysis) {
+        throw new Error(data.error || "Analysis failed");
+      }
 
-      const resumeSkills = allSkills.filter(skill => 
-        resumeLower.includes(skill.toLowerCase())
-      );
+      const analysis = data.analysis;
 
-      const requiredSkills = allSkills.filter(skill => 
-        jobLower.includes(skill.toLowerCase())
-      );
-
-      const matchedSkills = resumeSkills.filter(skill => 
-        requiredSkills.includes(skill)
-      );
-
-      const missingSkills = requiredSkills.filter(skill => 
-        !resumeSkills.includes(skill)
-      );
-
-      // Calculate score
-      const skillScore = requiredSkills.length > 0 
-        ? (matchedSkills.length / requiredSkills.length) * 100 
-        : 50;
-
-      // Check for experience mentions
-      const hasExperience = /\d+\s*(years?|yrs?)/i.test(resume);
-      const experienceBonus = hasExperience ? 10 : 0;
-
-      // Check for education
-      const hasEducation = /(bachelor|master|phd|degree|university|college)/i.test(resume);
-      const educationBonus = hasEducation ? 5 : 0;
-
-      const overallScore = Math.min(100, Math.round(skillScore * 0.7 + experienceBonus + educationBonus + Math.random() * 10));
-
-      const recommendation: "strong" | "moderate" | "weak" = 
-        overallScore >= 75 ? "strong" : 
-        overallScore >= 50 ? "moderate" : "weak";
-
-      const experienceMatch = hasExperience 
-        ? "Candidate shows relevant work experience" 
-        : "Experience details could be more detailed";
-
-      const educationMatch = hasEducation 
-        ? "Educational background aligns with requirements" 
-        : "Educational qualifications not clearly specified";
-
-      const summaryParts = [
-        `The candidate demonstrates ${matchedSkills.length} out of ${requiredSkills.length} required skills.`,
-        matchedSkills.length > 0 ? `Strong matches in ${matchedSkills.slice(0, 3).join(", ")}.` : "",
-        missingSkills.length > 0 ? `Consider evaluating proficiency in ${missingSkills.slice(0, 2).join(" and ")}.` : "Excellent skill coverage.",
-      ].filter(Boolean);
+      // Ensure the recommendation is one of the valid values
+      const validRecommendation = ["strong", "moderate", "weak"].includes(analysis.recommendation)
+        ? analysis.recommendation
+        : analysis.overallScore >= 75 ? "strong" : analysis.overallScore >= 50 ? "moderate" : "weak";
 
       setResults({
-        overallScore,
-        matchedSkills: matchedSkills.map(s => s.charAt(0).toUpperCase() + s.slice(1)),
-        missingSkills: missingSkills.map(s => s.charAt(0).toUpperCase() + s.slice(1)),
-        experienceMatch,
-        educationMatch,
-        summary: summaryParts.join(" "),
-        recommendation,
+        overallScore: Math.round(analysis.overallScore),
+        matchedSkills: analysis.matchedSkills || [],
+        missingSkills: analysis.missingSkills || [],
+        experienceMatch: analysis.experienceMatch || "Experience evaluation not available",
+        educationMatch: analysis.educationMatch || "Education evaluation not available",
+        summary: analysis.summary || "Analysis complete",
+        recommendation: validRecommendation,
       });
 
       toast({
         title: "Analysis Complete",
-        description: `Resume scored ${overallScore}% match with the job requirements.`,
+        description: `Resume scored ${Math.round(analysis.overallScore)}% match with the job requirements.`,
       });
     } catch (error) {
+      console.error("Analysis error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Something went wrong";
       toast({
         title: "Analysis Failed",
-        description: "Something went wrong. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
