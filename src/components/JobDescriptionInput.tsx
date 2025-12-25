@@ -1,5 +1,6 @@
-import { Briefcase, Info } from "lucide-react";
+import { Briefcase } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import FileUpload from "./FileUpload";
 
 interface JobDescriptionInputProps {
   value: string;
@@ -9,13 +10,20 @@ interface JobDescriptionInputProps {
 const JobDescriptionInput = ({ value, onChange }: JobDescriptionInputProps) => {
   return (
     <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 rounded-lg bg-accent/10">
-          <Briefcase className="w-5 h-5 text-accent" />
+      <FileUpload
+        onTextExtracted={onChange}
+        label="Job Description"
+        description="Upload or paste the job requirements"
+        icon={<Briefcase className="w-5 h-5 text-accent" />}
+        accentColor="accent"
+      />
+      
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-border/50" />
         </div>
-        <div>
-          <h3 className="font-semibold text-foreground">Job Description</h3>
-          <p className="text-sm text-muted-foreground">Enter the job requirements to match against</p>
+        <div className="relative flex justify-center">
+          <span className="bg-card px-3 text-xs text-muted-foreground">or paste text</span>
         </div>
       </div>
       
@@ -38,13 +46,8 @@ Requirements:
 - Strong communication abilities"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="min-h-[280px] bg-background/50 border-border/50 focus:border-accent/50"
+        className="min-h-[200px] bg-background/50 border-border/50 focus:border-accent/50"
       />
-      
-      <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
-        <Info className="w-3 h-3" />
-        <span>Include required skills, experience level, and qualifications</span>
-      </div>
     </div>
   );
 };

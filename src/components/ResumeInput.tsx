@@ -1,5 +1,6 @@
-import { FileText, Upload } from "lucide-react";
+import { FileText } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import FileUpload from "./FileUpload";
 
 interface ResumeInputProps {
   value: string;
@@ -9,13 +10,20 @@ interface ResumeInputProps {
 const ResumeInput = ({ value, onChange }: ResumeInputProps) => {
   return (
     <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <FileText className="w-5 h-5 text-primary" />
+      <FileUpload
+        onTextExtracted={onChange}
+        label="Resume"
+        description="Upload or paste the candidate's resume"
+        icon={<FileText className="w-5 h-5 text-primary" />}
+        accentColor="primary"
+      />
+      
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-border/50" />
         </div>
-        <div>
-          <h3 className="font-semibold text-foreground">Resume Content</h3>
-          <p className="text-sm text-muted-foreground">Paste the candidate's resume text</p>
+        <div className="relative flex justify-center">
+          <span className="bg-card px-3 text-xs text-muted-foreground">or paste text</span>
         </div>
       </div>
       
@@ -38,13 +46,8 @@ Skills:
 JavaScript, TypeScript, React, Node.js, Python, AWS, Docker, PostgreSQL"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="min-h-[280px] bg-background/50 border-border/50 focus:border-primary/50"
+        className="min-h-[200px] bg-background/50 border-border/50 focus:border-primary/50"
       />
-      
-      <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
-        <Upload className="w-3 h-3" />
-        <span>Tip: Include work experience, skills, and education for best results</span>
-      </div>
     </div>
   );
 };
