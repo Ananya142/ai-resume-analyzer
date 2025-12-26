@@ -40,6 +40,7 @@ Your task:
 4. Evaluate experience relevance
 5. Assess education alignment
 6. Calculate an overall match score (0-100)
+7. Provide actionable suggestions to improve the resume for this specific job
 
 Return ONLY valid JSON in this exact format:
 {
@@ -49,8 +50,22 @@ Return ONLY valid JSON in this exact format:
   "experienceMatch": "<one sentence about experience alignment>",
   "educationMatch": "<one sentence about education alignment>",
   "summary": "<2-3 sentences summarizing the candidate's fit>",
-  "recommendation": "<strong|moderate|weak>"
+  "recommendation": "<strong|moderate|weak>",
+  "resumeSuggestions": [
+    "<specific actionable suggestion 1>",
+    "<specific actionable suggestion 2>",
+    "<specific actionable suggestion 3>",
+    "<specific actionable suggestion 4>",
+    "<specific actionable suggestion 5>"
+  ]
 }
+
+For resumeSuggestions, provide 3-5 specific, actionable improvements the candidate can make to their resume to better match this job. Focus on:
+- Skills to add or highlight
+- Experience descriptions to reframe
+- Keywords to include
+- Sections to add or expand
+- Formatting improvements
 
 Be thorough and accurate. Consider synonyms (e.g., "JS" = "JavaScript"). Weight technical skills heavily but also consider soft skills if mentioned in the job description.`;
 

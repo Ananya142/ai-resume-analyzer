@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, AlertCircle, TrendingUp, Award, Users } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, TrendingUp, Award, Users, Lightbulb } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface AnalysisResultsProps {
@@ -10,6 +10,7 @@ interface AnalysisResultsProps {
     educationMatch: string;
     summary: string;
     recommendation: "strong" | "moderate" | "weak";
+    resumeSuggestions?: string[];
   } | null;
   isLoading: boolean;
 }
@@ -148,7 +149,7 @@ const AnalysisResults = ({ results, isLoading }: AnalysisResultsProps) => {
       </div>
 
       {/* Additional Matches */}
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid md:grid-cols-2 gap-4 mb-6">
         <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
           <div className="flex items-center gap-2 mb-2">
             <Users className="w-4 h-4 text-primary" />
@@ -164,6 +165,26 @@ const AnalysisResults = ({ results, isLoading }: AnalysisResultsProps) => {
           <p className="text-sm text-muted-foreground">{results.educationMatch}</p>
         </div>
       </div>
+
+      {/* Resume Suggestions */}
+      {results.resumeSuggestions && results.resumeSuggestions.length > 0 && (
+        <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+          <div className="flex items-center gap-2 mb-4">
+            <Lightbulb className="w-5 h-5 text-primary" />
+            <span className="font-semibold text-foreground">Resume Improvement Suggestions</span>
+          </div>
+          <ul className="space-y-3">
+            {results.resumeSuggestions.map((suggestion, index) => (
+              <li key={index} className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center">
+                  {index + 1}
+                </span>
+                <p className="text-sm text-foreground leading-relaxed">{suggestion}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
