@@ -7,11 +7,7 @@ const Footer = () => {
         <p className="text-sm text-muted-foreground">
           © 2024 ResumeAI. Intelligent resume screening powered by NLP.
         </p>
-        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-          <span>Built with</span>
-          <Heart className="w-4 h-4 text-destructive fill-destructive" />
-          <span>for HR professionals</span>
-        </div>
+       
       </div>
     </footer>
   );

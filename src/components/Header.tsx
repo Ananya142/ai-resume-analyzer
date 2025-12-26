@@ -15,7 +15,7 @@ const Header = () => {
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 border border-border/50">
           <Sparkles className="w-4 h-4 text-primary" />
-          <span className="text-sm text-muted-foreground">Powered by NLP</span>
+
         </div>
       </div>
     </header>
