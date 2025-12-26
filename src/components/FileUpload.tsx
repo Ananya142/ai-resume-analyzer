@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
-import { Upload, FileText, X, Loader2 } from "lucide-react";
+import { Upload, FileText, X, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FileUploadProps {
   onTextExtracted: (text: string) => void;
@@ -22,6 +23,7 @@ const FileUpload = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,48 +56,73 @@ const FileUpload = ({
   const processFile = async (file: File) => {
     setError(null);
     setIsProcessing(true);
+    setIsSuccess(false);
     setFileName(file.name);
 
     try {
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error("File size exceeds 10MB limit");
+      }
+
       // For text files, read directly
-      if (file.type === "text/plain") {
+      if (file.type === "text/plain" || file.name.endsWith(".txt")) {
         const text = await file.text();
         onTextExtracted(text);
+        setIsSuccess(true);
         setIsProcessing(false);
         return;
       }
 
-      // For PDF and Word docs, we'll read as text for now
-      // In a production app, you'd send to a document parsing service
-      if (file.type === "application/pdf") {
-        // PDF files need server-side processing
-        // For now, we'll inform the user to paste the text
-        setError("PDF parsing requires copying text manually. Please paste the resume content in the text area below.");
-        setIsProcessing(false);
-        return;
+      // For PDF and Word docs, send to edge function for parsing
+      const base64 = await fileToBase64(file);
+      
+      const { data, error: parseError } = await supabase.functions.invoke("parse-document", {
+        body: {
+          fileBase64: base64,
+          fileName: file.name,
+          mimeType: file.type,
+        },
+      });
+
+      if (parseError) {
+        throw parseError;
       }
 
-      // For Word docs
-      if (file.type.includes("word") || file.name.endsWith(".doc") || file.name.endsWith(".docx")) {
-        setError("Word document parsing requires copying text manually. Please paste the content in the text area below.");
-        setIsProcessing(false);
-        return;
+      if (!data.success || !data.text) {
+        throw new Error(data.error || "Failed to extract text from document");
       }
 
-      // Try to read as text for other file types
-      const text = await file.text();
-      onTextExtracted(text);
+      onTextExtracted(data.text);
+      setIsSuccess(true);
     } catch (err) {
       console.error("Error processing file:", err);
-      setError("Failed to process file. Please paste the content manually.");
+      setError(err instanceof Error ? err.message : "Failed to process file");
+      setFileName(null);
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data URL prefix (e.g., "data:application/pdf;base64,")
+        const base64 = result.split(",")[1];
+        resolve(base64);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   const clearFile = () => {
     setFileName(null);
     setError(null);
+    setIsSuccess(false);
+    onTextExtracted("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -118,14 +145,14 @@ const FileUpload = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`
-          relative border-2 border-dashed rounded-lg p-6 transition-all duration-200 cursor-pointer
+          relative border-2 border-dashed rounded-lg p-8 transition-all duration-200 cursor-pointer
           ${isDragging 
             ? `border-${accentColor} bg-${accentColor}/5` 
             : "border-border/50 hover:border-border hover:bg-muted/30"
           }
-          ${fileName ? "bg-muted/20" : ""}
+          ${isSuccess ? "border-success/50 bg-success/5" : ""}
         `}
-        onClick={() => fileInputRef.current?.click()}
+        onClick={() => !isProcessing && fileInputRef.current?.click()}
       >
         <input
           ref={fileInputRef}
@@ -137,18 +164,21 @@ const FileUpload = ({
 
         {isProcessing ? (
           <div className="flex flex-col items-center gap-3 py-4">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            <p className="text-sm text-muted-foreground">Processing {fileName}...</p>
+            <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            <div className="text-center">
+              <p className="text-sm font-medium text-foreground">Processing {fileName}...</p>
+              <p className="text-xs text-muted-foreground mt-1">Extracting text content</p>
+            </div>
           </div>
-        ) : fileName ? (
+        ) : isSuccess && fileName ? (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-success/10">
-                <FileText className="w-5 h-5 text-success" />
+                <CheckCircle2 className="w-6 h-6 text-success" />
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">{fileName}</p>
-                <p className="text-xs text-muted-foreground">File uploaded</p>
+                <p className="text-xs text-success">Document processed successfully</p>
               </div>
             </div>
             <Button
@@ -164,9 +194,9 @@ const FileUpload = ({
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-3 py-2">
-            <div className="p-3 rounded-full bg-muted">
-              <Upload className="w-6 h-6 text-muted-foreground" />
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="p-4 rounded-full bg-muted">
+              <Upload className="w-8 h-8 text-muted-foreground" />
             </div>
             <div className="text-center">
               <p className="text-sm font-medium text-foreground">
@@ -181,7 +211,7 @@ const FileUpload = ({
       </div>
 
       {error && (
-        <p className="text-xs text-warning bg-warning/10 px-3 py-2 rounded-lg">
+        <p className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-lg">
           {error}
         </p>
       )}
